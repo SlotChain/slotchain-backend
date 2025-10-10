@@ -1,0 +1,106 @@
+import {
+  Controller,
+  Post,
+  UseInterceptors,
+  UploadedFile,
+  Body,
+  Get,
+  Param,
+  NotFoundException,
+  Patch,
+  BadRequestException,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type { Express } from 'express';
+import { AuthService } from './auth.service';
+
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  // Step 1: Get login message
+  @Post('login-message')
+  getLoginMessage() {
+    return this.authService.getMessageToSign();
+  }
+
+  // Step 2: Verify login (existing vs new user)
+  @Post('login')
+  async login(@Body() body: { walletAddress: string; signature: string }) {
+    return this.authService.verifyLogin(body.walletAddress, body.signature);
+  }
+
+  // Step 3: Signup new user with optional profile photo
+  @Post('signup')
+  @UseInterceptors(FileInterceptor('profilePhoto'))
+  async signup(
+    @UploadedFile() profilePhoto: Express.Multer.File,
+    @Body() body: any,
+  ) {
+    const profilePhotoBase64 = profilePhoto
+      ? `data:${profilePhoto.mimetype};base64,${profilePhoto.buffer.toString('base64')}`
+      : undefined;
+
+    return this.authService.signup({
+      walletAddress: body.walletAddress,
+      fullName: body.fullName,
+      email: body.email,
+      bio: body.bio,
+      hourlyRate: body.hourlyRate,
+      currency: body.currency,
+      profilePhoto: profilePhotoBase64,
+    });
+  }
+
+  // GET /auth/user/:walletAddress — fetch user by wallet address
+  @Get('user/:walletAddress')
+  async getUserByWallet(@Param('walletAddress') walletAddress: string) {
+    const user = await this.authService.getUserByWalletAddress(
+      walletAddress?.toLowerCase(),
+    );
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return { status: 'ok', user };
+  }
+
+  @Post('user/:walletAddress')
+  @UseInterceptors(FileInterceptor('profilePhoto'))
+  async updateUser(
+    @Param('walletAddress') walletAddress: string,
+    @UploadedFile() profilePhoto: Express.Multer.File,
+    @Body() body: any,
+  ) {
+    // Convert uploaded profile photo to base64 if present
+    const profilePhotoBase64 = profilePhoto
+      ? `data:${profilePhoto.mimetype};base64,${profilePhoto.buffer.toString('base64')}`
+      : undefined;
+
+    // Build update payload conditionally
+    const updateData = {
+      ...(body.fullName !== undefined && { fullName: body.fullName }),
+      ...(body.email !== undefined && { email: body.email }),
+      ...(body.bio !== undefined && { bio: body.bio }),
+      ...(body.hourlyRate !== undefined && { hourlyRate: body.hourlyRate }),
+      ...(body.currency !== undefined && { currency: body.currency }),
+      ...(body.walletAddress !== undefined && {
+        walletAddress: body.walletAddress.toLowerCase(),
+      }),
+      ...(profilePhotoBase64 && { profilePhoto: profilePhotoBase64 }),
+    };
+
+    // Update user document in MongoDB
+    const updated = await this.authService.updateUserByWalletAddress(
+      walletAddress?.toLowerCase(),
+      updateData,
+    );
+
+    if (!updated) {
+      throw new NotFoundException('User not found');
+    }
+
+    return { status: 'updated', user: updated };
+  }
+}
