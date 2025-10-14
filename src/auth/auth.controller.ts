@@ -13,10 +13,14 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Express } from 'express';
 import { AuthService } from './auth.service';
+import { AvailabilityService } from '../availability/availability.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly availabilityService: AvailabilityService,
+  ) {}
 
   // Step 1: Get login message
   @Post('login-message')
@@ -55,15 +59,21 @@ export class AuthController {
   // GET /auth/user/:walletAddress — fetch user by wallet address
   @Get('user/:walletAddress')
   async getUserByWallet(@Param('walletAddress') walletAddress: string) {
-    const user = await this.authService.getUserByWalletAddress(
-      walletAddress?.toLowerCase(),
-    );
+    const lower = walletAddress?.toLowerCase();
+    const user = await this.authService.getUserByWalletAddress(lower);
 
     if (!user) {
       throw new NotFoundException('User not found');
     }
 
-    return { status: 'ok', user };
+    // fetch availability (may be null)
+
+    return {
+      status: 'ok',
+      data: {
+        user,
+      },
+    };
   }
 
   @Post('user/:walletAddress')

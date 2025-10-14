@@ -1,57 +1,94 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Schema, Document } from 'mongoose';
 
-@Schema({ _id: false })
-export class TimeSlot {
-  @Prop({ required: true })
+/* ─────────────── INTERFACES ─────────────── */
+
+export interface ITimeSlot {
   start: string;
-
-  @Prop({ required: true })
   end: string;
 }
 
-const TimeSlotSchema = SchemaFactory.createForClass(TimeSlot);
-
-@Schema({ _id: false })
-export class DayAvailability {
-  @Prop({ default: false })
-  enabled: boolean;
-
-  @Prop({ type: [TimeSlotSchema], default: [] })
-  slots: TimeSlot[];
+export interface IWeekAvailability {
+  monday: ITimeSlot[];
+  tuesday: ITimeSlot[];
+  wednesday: ITimeSlot[];
+  thursday: ITimeSlot[];
+  friday: ITimeSlot[];
+  saturday: ITimeSlot[];
+  sunday: ITimeSlot[];
 }
 
-const DayAvailabilitySchema = SchemaFactory.createForClass(DayAvailability);
+export interface IRange {
+  start?: string;
+  end?: string;
+  infinite?: boolean;
+}
 
-@Schema({ timestamps: true })
-export class UserAvailability extends Document {
-  @Prop({ required: true })
+export interface IAvailableDay {
+  date: string;
+  availability: IWeekAvailability;
+}
+
+export interface IAvailability extends Document {
   walletAddress: string;
-
-  @Prop({ required: true, default: 'UTC' })
   timezone: string;
-
-  @Prop({ type: DayAvailabilitySchema, default: {} })
-  monday: DayAvailability;
-
-  @Prop({ type: DayAvailabilitySchema, default: {} })
-  tuesday: DayAvailability;
-
-  @Prop({ type: DayAvailabilitySchema, default: {} })
-  wednesday: DayAvailability;
-
-  @Prop({ type: DayAvailabilitySchema, default: {} })
-  thursday: DayAvailability;
-
-  @Prop({ type: DayAvailabilitySchema, default: {} })
-  friday: DayAvailability;
-
-  @Prop({ type: DayAvailabilitySchema, default: {} })
-  saturday: DayAvailability;
-
-  @Prop({ type: DayAvailabilitySchema, default: {} })
-  sunday: DayAvailability;
+  interval: number;
+  range?: IRange;
+  unavailableRanges?: IRange[];
+  availableDays?: IAvailableDay[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export const UserAvailabilitySchema =
-  SchemaFactory.createForClass(UserAvailability);
+/* ─────────────── SCHEMAS ─────────────── */
+
+const TimeSlotSchema = new Schema<ITimeSlot>(
+  {
+    start: { type: String, required: true },
+    end: { type: String, required: true },
+  },
+  { _id: false },
+);
+
+const WeekAvailabilitySchema = new Schema<IWeekAvailability>(
+  {
+    monday: [TimeSlotSchema],
+    tuesday: [TimeSlotSchema],
+    wednesday: [TimeSlotSchema],
+    thursday: [TimeSlotSchema],
+    friday: [TimeSlotSchema],
+    saturday: [TimeSlotSchema],
+    sunday: [TimeSlotSchema],
+  },
+  { _id: false },
+);
+
+const RangeSchema = new Schema<IRange>(
+  {
+    start: String,
+    end: String,
+    infinite: Boolean,
+  },
+  { _id: false },
+);
+
+const AvailableDaySchema = new Schema<IAvailableDay>(
+  {
+    date: { type: String, required: true },
+    availability: { type: WeekAvailabilitySchema, required: true },
+  },
+  { _id: false },
+);
+
+/* ─────────────── MAIN AVAILABILITY SCHEMA ─────────────── */
+
+export const AvailabilitySchema = new Schema<IAvailability>(
+  {
+    walletAddress: { type: String, index: true, required: true },
+    timezone: { type: String, required: true },
+    interval: { type: Number, default: 30 },
+    range: RangeSchema,
+    unavailableRanges: [RangeSchema],
+    availableDays: [AvailableDaySchema],
+  },
+  { timestamps: true },
+);

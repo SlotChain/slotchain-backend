@@ -1,6 +1,15 @@
-import { IsBoolean, IsString, ValidateNested } from 'class-validator';
+import {
+  IsBoolean,
+  IsString,
+  IsOptional,
+  IsInt,
+  IsArray,
+  ValidateNested,
+  IsObject,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
+/** ────────────── Time Slot DTO ────────────── **/
 class TimeSlotDto {
   @IsString()
   start: string;
@@ -9,44 +18,89 @@ class TimeSlotDto {
   end: string;
 }
 
-class DayAvailabilityDto {
-  @IsBoolean()
-  enabled: boolean;
-
+/** ────────────── Weekly Availability ────────────── **/
+class WeekAvailabilityDto {
+  @IsArray()
   @ValidateNested({ each: true })
   @Type(() => TimeSlotDto)
-  slots: TimeSlotDto[];
+  monday: TimeSlotDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TimeSlotDto)
+  tuesday: TimeSlotDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TimeSlotDto)
+  wednesday: TimeSlotDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TimeSlotDto)
+  thursday: TimeSlotDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TimeSlotDto)
+  friday: TimeSlotDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TimeSlotDto)
+  saturday: TimeSlotDto[];
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TimeSlotDto)
+  sunday: TimeSlotDto[];
 }
 
+/** ────────────── Range (start–end–infinite) ────────────── **/
+class RangeDto {
+  @IsOptional()
+  @IsString()
+  start?: string;
+
+  @IsOptional()
+  @IsString()
+  end?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  infinite?: boolean;
+}
+
+/** ────────────── Per-day Availability ────────────── **/
+class AvailableDayDto {
+  @IsString()
+  date: string;
+
+  @IsObject()
+  @ValidateNested()
+  @Type(() => WeekAvailabilityDto)
+  availability: WeekAvailabilityDto;
+}
+
+/** ────────────── Main CreateAvailabilityDto ────────────── **/
 export class CreateAvailabilityDto {
   @IsString()
   timezone: string;
 
-  @ValidateNested()
-  @Type(() => DayAvailabilityDto)
-  monday: DayAvailabilityDto;
+  @IsInt()
+  interval: number;
 
   @ValidateNested()
-  @Type(() => DayAvailabilityDto)
-  tuesday: DayAvailabilityDto;
+  @Type(() => RangeDto)
+  range: RangeDto;
 
-  @ValidateNested()
-  @Type(() => DayAvailabilityDto)
-  wednesday: DayAvailabilityDto;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RangeDto)
+  unavailableRanges: RangeDto[];
 
-  @ValidateNested()
-  @Type(() => DayAvailabilityDto)
-  thursday: DayAvailabilityDto;
-
-  @ValidateNested()
-  @Type(() => DayAvailabilityDto)
-  friday: DayAvailabilityDto;
-
-  @ValidateNested()
-  @Type(() => DayAvailabilityDto)
-  saturday: DayAvailabilityDto;
-
-  @ValidateNested()
-  @Type(() => DayAvailabilityDto)
-  sunday: DayAvailabilityDto;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AvailableDayDto)
+  availableDays: AvailableDayDto[];
 }

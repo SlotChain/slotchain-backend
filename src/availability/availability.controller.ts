@@ -18,7 +18,7 @@ export class AvailabilityController {
     return { success: true, data: result };
   }
 
-  @Get(':walletAddress')
+  @Get('getAvailability/:walletAddress')
   async getAvailability(@Param('walletAddress') walletAddress: string) {
     const result =
       await this.availabilityService.getAvailability(walletAddress);
