@@ -7,9 +7,9 @@ import {
   Get,
   Param,
   NotFoundException,
-  Patch,
-  BadRequestException,
+  Logger,
 } from '@nestjs/common';
+
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Express } from 'express';
 import { AuthService } from './auth.service';
@@ -34,16 +34,17 @@ export class AuthController {
     return this.authService.verifyLogin(body.walletAddress, body.signature);
   }
 
-  // Step 3: Signup new user with optional profile photo
   @Post('signup')
   @UseInterceptors(FileInterceptor('profilePhoto'))
   async signup(
     @UploadedFile() profilePhoto: Express.Multer.File,
     @Body() body: any,
   ) {
-    const profilePhotoBase64 = profilePhoto
-      ? `data:${profilePhoto.mimetype};base64,${profilePhoto.buffer.toString('base64')}`
-      : undefined;
+    console.log('Received signup request');
+    console.debug(`Body: ${JSON.stringify(body, null, 2)}`);
+    console.log(
+      `File received: ${profilePhoto ? profilePhoto.originalname : 'none'}`,
+    );
 
     return this.authService.signup({
       walletAddress: body.walletAddress,
@@ -52,7 +53,7 @@ export class AuthController {
       bio: body.bio,
       hourlyRate: body.hourlyRate,
       currency: body.currency,
-      profilePhoto: profilePhotoBase64,
+      profilePhoto, // ✅ pass as file
     });
   }
 
@@ -83,34 +84,52 @@ export class AuthController {
     @UploadedFile() profilePhoto: Express.Multer.File,
     @Body() body: any,
   ) {
-    // Convert uploaded profile photo to base64 if present
-    const profilePhotoBase64 = profilePhoto
-      ? `data:${profilePhoto.mimetype};base64,${profilePhoto.buffer.toString('base64')}`
-      : undefined;
-
-    // Build update payload conditionally
-    const updateData = {
-      ...(body.fullName !== undefined && { fullName: body.fullName }),
-      ...(body.email !== undefined && { email: body.email }),
-      ...(body.bio !== undefined && { bio: body.bio }),
-      ...(body.hourlyRate !== undefined && { hourlyRate: body.hourlyRate }),
-      ...(body.currency !== undefined && { currency: body.currency }),
-      ...(body.walletAddress !== undefined && {
-        walletAddress: body.walletAddress.toLowerCase(),
-      }),
-      ...(profilePhotoBase64 && { profilePhoto: profilePhotoBase64 }),
-    };
-
-    // Update user document in MongoDB
-    const updated = await this.authService.updateUserByWalletAddress(
-      walletAddress?.toLowerCase(),
-      updateData,
-    );
-
-    if (!updated) {
-      throw new NotFoundException('User not found');
-    }
-
-    return { status: 'updated', user: updated };
+    return this.authService.updateProfile({
+      walletAddress,
+      fullName: body.fullName,
+      email: body.email,
+      bio: body.bio,
+      hourlyRate: body.hourlyRate,
+      currency: body.currency,
+      profilePhoto,
+    });
   }
+
+  // @Post('user/:walletAddress')
+  // @UseInterceptors(FileInterceptor('profilePhoto'))
+  // async updateUser(
+  //   @Param('walletAddress') walletAddress: string,
+  //   @UploadedFile() profilePhoto: Express.Multer.File,
+  //   @Body() body: any,
+  // ) {
+  //   // Convert uploaded profile photo to base64 if present
+  //   const profilePhotoBase64 = profilePhoto
+  //     ? `data:${profilePhoto.mimetype};base64,${profilePhoto.buffer.toString('base64')}`
+  //     : undefined;
+
+  //   // Build update payload conditionally
+  //   const updateData = {
+  //     ...(body.fullName !== undefined && { fullName: body.fullName }),
+  //     ...(body.email !== undefined && { email: body.email }),
+  //     ...(body.bio !== undefined && { bio: body.bio }),
+  //     ...(body.hourlyRate !== undefined && { hourlyRate: body.hourlyRate }),
+  //     ...(body.currency !== undefined && { currency: body.currency }),
+  //     ...(body.walletAddress !== undefined && {
+  //       walletAddress: body.walletAddress.toLowerCase(),
+  //     }),
+  //     ...(profilePhotoBase64 && { profilePhoto: profilePhotoBase64 }),
+  //   };
+
+  //   // Update user document in MongoDB
+  //   const updated = await this.authService.updateUserByWalletAddress(
+  //     walletAddress?.toLowerCase(),
+  //     updateData,
+  //   );
+
+  //   if (!updated) {
+  //     throw new NotFoundException('User not found');
+  //   }
+
+  //   return { status: 'updated', user: updated };
+  // }
 }

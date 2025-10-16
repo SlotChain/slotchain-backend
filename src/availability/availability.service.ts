@@ -1,10 +1,19 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import moment from 'moment-timezone';
-
 import { IAvailability } from './schemas/availability.schema';
 import { CreateAvailabilityDto } from './dto/create-availability.dto';
+
+interface BookSlotParams {
+  walletAddress: string;
+  date: string;
+  slotId: string;
+}
 
 @Injectable()
 export class AvailabilityService {
@@ -15,8 +24,6 @@ export class AvailabilityService {
 
   /** 🔹 Upsert user availability */
   async upsertAvailability(walletAddress: string, dto: CreateAvailabilityDto) {
-    console.log('🟩 Incoming DTO for upsert:', JSON.stringify(dto, null, 2));
-
     const updateData = {
       walletAddress,
       timezone: dto.timezone,
@@ -26,18 +33,12 @@ export class AvailabilityService {
       availableDays: dto.availableDays || [],
     };
 
-    console.log(
-      '🟨 Data to be saved in Mongo:',
-      JSON.stringify(updateData, null, 2),
-    );
-
     const result = await this.availabilityModel.findOneAndUpdate(
       { walletAddress },
       { $set: updateData },
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
 
-    console.log('🟦 MongoDB saved result:', JSON.stringify(result, null, 2));
     return result;
   }
 
@@ -47,13 +48,9 @@ export class AvailabilityService {
       walletAddress,
     });
     if (!availability) {
-      console.log(`⚠️ No availability found for wallet: ${walletAddress}`);
       return null;
     }
-    console.log(
-      '🟢 Found availability:',
-      JSON.stringify(availability, null, 2),
-    );
+
     return availability;
   }
 
@@ -89,7 +86,7 @@ export class AvailabilityService {
       .format('dddd')
       .toLowerCase();
 
-    const dayAvailability = dayRecord.availability?.[weekday];
+    const dayAvailability = dayRecord?.[weekday];
     if (!dayAvailability || dayAvailability.length === 0) return [];
 
     const interval = availability.interval;
@@ -108,5 +105,45 @@ export class AvailabilityService {
 
     console.log(`🕒 Available slots for ${targetDate}:`, slots);
     return slots;
+  }
+
+  async bookSlot({
+    creatorAddress,
+    date,
+    slotId,
+  }: {
+    creatorAddress: string;
+    date: string;
+    slotId: string;
+  }) {
+    const userAvailability = await this.availabilityModel.findOne({
+      walletAddress: creatorAddress,
+    });
+
+    console.log('User Availabiltiy', userAvailability);
+
+    if (!userAvailability) {
+      throw new Error('Availability not found');
+    }
+
+    const day = userAvailability?.availableDays?.find((d) => d.date === date);
+    if (!day) {
+      throw new Error('Day not found');
+    }
+
+    const slot = day.slots.find((s) => String(s._id) === String(slotId));
+    if (!slot) {
+      throw new Error('Slot not found');
+    }
+
+    if (slot.booked) {
+      throw new Error('Slot is already booked');
+    }
+
+    slot.booked = true;
+
+    await userAvailability.save();
+
+    return slot;
   }
 }

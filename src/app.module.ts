@@ -10,6 +10,9 @@ import { AvailabilityModule } from './availability/availability.module';
   imports: [
     AuthModule,
     ConfigModule.forRoot({
+      isGlobal: true, // ✅ this makes env vars accessible everywhere
+    }),
+    ConfigModule.forRoot({
       envFilePath: '.env',
     }),
     MongooseModule.forRoot(process.env.MONGO_URI!),
