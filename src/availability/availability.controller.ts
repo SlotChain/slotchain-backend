@@ -8,21 +8,25 @@ export class AvailabilityController {
 
   @Post('bookSlot')
   async bookSlot(
-    @Body() body: { creatorAddress: string; date: string; slotId: string },
+    @Body()
+    body: {
+      creatorAddress: string;
+      date: string;
+      slotId: string;
+      buyerEmail: string;
+      buyerName?: string;
+      creatorName?: string;
+      tokenId: string;
+    },
   ) {
-    console.log('🔥 [POST /bookSlot] Hit the bookSlot controller');
-    console.log('📦 Request body:', body);
-
     try {
       const result = await this.availabilityService.bookSlot(body);
-      console.log('✅ Booking result:', result);
       return {
         success: true,
         message: 'Slot booked successfully',
         data: result,
       };
     } catch (error) {
-      console.error('❌ Error booking slot:', error.message);
       return { success: false, message: error.message };
     }
   }

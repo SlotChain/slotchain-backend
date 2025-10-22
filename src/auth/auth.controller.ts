@@ -40,12 +40,6 @@ export class AuthController {
     @UploadedFile() profilePhoto: Express.Multer.File,
     @Body() body: any,
   ) {
-    console.log('Received signup request');
-    console.debug(`Body: ${JSON.stringify(body, null, 2)}`);
-    console.log(
-      `File received: ${profilePhoto ? profilePhoto.originalname : 'none'}`,
-    );
-
     return this.authService.signup({
       walletAddress: body.walletAddress,
       fullName: body.fullName,

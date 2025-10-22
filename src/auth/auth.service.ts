@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   BadRequestException,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -11,6 +12,7 @@ import { User } from './user.schema';
 import * as dotenv from 'dotenv';
 import axios from 'axios';
 import FormData from 'form-data';
+import * as path from 'path';
 
 dotenv.config(); // ✅ load .env at runtime
 
@@ -24,6 +26,88 @@ export class AuthService {
   private readonly pinataSecretKey = process.env.PINATA_SECRET_KEY;
 
   constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+
+  private buildProfilePhotoFilename(
+    walletAddress: string,
+    file: Express.Multer.File,
+  ) {
+    const extension = this.resolveFileExtension(
+      file?.originalname,
+      file?.mimetype,
+    );
+    const normalizedWallet = walletAddress.toLowerCase();
+    return `${normalizedWallet}-photo${extension}`;
+  }
+
+  private resolveFileExtension(originalName?: string, mimetype?: string) {
+    const nameExt =
+      (originalName && path.extname(originalName).toLowerCase()) || '';
+    if (nameExt) {
+      return nameExt;
+    }
+
+    switch (mimetype) {
+      case 'image/jpeg':
+      case 'image/jpg':
+        return '.jpg';
+      case 'image/png':
+        return '.png';
+      case 'image/gif':
+        return '.gif';
+      case 'image/webp':
+        return '.webp';
+      case 'image/svg+xml':
+        return '.svg';
+      default:
+        return '';
+    }
+  }
+
+  private describePinataError(err: unknown) {
+    if (axios.isAxiosError(err)) {
+      const { response, code, message } = err;
+
+      if (response) {
+        const payload =
+          typeof response.data === 'string'
+            ? response.data
+            : JSON.stringify(response.data);
+        return `Pinata responded with status ${response.status}${
+          payload ? ` - ${payload}` : ''
+        }`;
+      }
+
+      if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') {
+        return 'Unable to resolve api.pinata.cloud. Check your internet connection or DNS configuration.';
+      }
+
+      if (code === 'ECONNABORTED' || code === 'ETIMEDOUT') {
+        return 'Connection to Pinata timed out. Please retry shortly.';
+      }
+
+      return message || 'Unexpected Axios error occurred while contacting Pinata.';
+    }
+
+    if (err instanceof Error) {
+      return err.message;
+    }
+
+    return 'Unknown error occurred while contacting Pinata.';
+  }
+
+  private buildPinataException(err: unknown, fallback: string) {
+    const message = this.describePinataError(err);
+    if (
+      axios.isAxiosError(err) &&
+      !err.response &&
+      ['ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED', 'ETIMEDOUT'].includes(
+        String(err.code),
+      )
+    ) {
+      return new ServiceUnavailableException(message);
+    }
+    return new BadRequestException(`${fallback}. ${message}`);
+  }
 
   // Step 1 — Send message to sign
   getMessageToSign() {
@@ -68,7 +152,10 @@ export class AuthService {
       fileData.append(
         'file',
         data.profilePhoto.buffer,
-        data.profilePhoto.originalname,
+        {
+          filename: this.buildProfilePhotoFilename(wallet, data.profilePhoto),
+          contentType: data.profilePhoto.mimetype,
+        },
       );
 
       try {
@@ -81,6 +168,8 @@ export class AuthService {
               pinata_api_key: this.pinataApiKey,
               pinata_secret_api_key: this.pinataSecretKey,
             },
+            maxBodyLength: Infinity,
+            maxContentLength: Infinity,
           },
         );
         imageCID = pinataFileRes.data.IpfsHash;
@@ -88,9 +177,10 @@ export class AuthService {
       } catch (err) {
         console.error(
           'Failed to upload new profile photo:',
-          err.response?.data || err.message,
+          this.describePinataError(err),
         );
-        throw new BadRequestException(
+        throw this.buildPinataException(
+          err,
           'Failed to upload new profile photo to Pinata',
         );
       }
@@ -127,6 +217,8 @@ export class AuthService {
             pinata_api_key: this.pinataApiKey,
             pinata_secret_api_key: this.pinataSecretKey,
           },
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
         },
       );
 
@@ -135,9 +227,10 @@ export class AuthService {
     } catch (err) {
       console.error(
         'Failed to upload updated metadata:',
-        err.response?.data || err.message,
+        this.describePinataError(err),
       );
-      throw new BadRequestException(
+      throw this.buildPinataException(
+        err,
         'Failed to upload updated metadata to Pinata',
       );
     }
@@ -240,32 +333,42 @@ export class AuthService {
 
     if (data.profilePhoto) {
       const fileData = new FormData();
-      fileData.append('file', data.profilePhoto.buffer, {
-        filename: data.profilePhoto.originalname,
-        contentType: data.profilePhoto.mimetype,
-      });
+      fileData.append(
+        'file',
+        data.profilePhoto.buffer,
+        {
+          filename: this.buildProfilePhotoFilename(
+            data.walletAddress,
+            data.profilePhoto,
+          ),
+          contentType: data.profilePhoto.mimetype,
+        },
+      );
 
       try {
         const pinataFileRes = await axios.post(
           'https://api.pinata.cloud/pinning/pinFileToIPFS',
           fileData,
-          {
-            headers: {
-              ...fileData.getHeaders(),
-              pinata_api_key: String(this.pinataApiKey),
-              pinata_secret_api_key: String(this.pinataSecretKey),
-            },
-          },
-        );
+      {
+        headers: {
+          ...fileData.getHeaders(),
+          pinata_api_key: String(this.pinataApiKey),
+          pinata_secret_api_key: String(this.pinataSecretKey),
+        },
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+      },
+    );
 
         imageCID = pinataFileRes.data.IpfsHash;
         console.log(`✅ Image uploaded: ${imageCID}`);
       } catch (err) {
         console.error(
           '❌ Failed to upload image to Pinata',
-          err.response?.data || err.message,
+          this.describePinataError(err),
         );
-        throw new BadRequestException(
+        throw this.buildPinataException(
+          err,
           'Failed to upload profile photo to Pinata',
         );
       }
@@ -301,6 +404,8 @@ export class AuthService {
             pinata_api_key: this.pinataApiKey,
             pinata_secret_api_key: this.pinataSecretKey,
           },
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
         },
       );
 
@@ -309,9 +414,9 @@ export class AuthService {
     } catch (err) {
       console.error(
         ' Failed to upload metadata',
-        err.response?.data || err.message,
+        this.describePinataError(err),
       );
-      throw new BadRequestException('Failed to upload metadata to Pinata');
+      throw this.buildPinataException(err, 'Failed to upload metadata to Pinata');
     }
 
     // 3️⃣ Save user

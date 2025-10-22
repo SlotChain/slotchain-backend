@@ -11,13 +11,11 @@ async function bootstrap() {
   });
 
   app.use((req, _res, next) => {
-    console.log('➡️', req.method, req.url, 'Body:', req.body);
     next();
   });
 
   const port = process.env.PORT || 5000;
   await app.listen(port);
-  console.log(`✅ Backend running on http://localhost:${port}`);
 }
 
 bootstrap();

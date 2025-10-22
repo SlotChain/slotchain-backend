@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from '@nestjs/config';
 import { AvailabilityModule } from './availability/availability.module';
+import { MeetingsModule } from './meetings/meetings.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AvailabilityModule } from './availability/availability.module';
     }),
     MongooseModule.forRoot(process.env.MONGO_URI!),
     AvailabilityModule,
+    MeetingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

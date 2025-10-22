@@ -20,6 +20,9 @@ import {
 } from './schemas/unavailable-date.schema';
 
 import { User, UserSchema } from '../auth/user.schema';
+import { ZoomService } from '../integrations/zoom.service';
+import { EmailService } from '../notifications/email.service';
+import { Booking, BookingSchema } from './schemas/booking.schema';
 
 @Module({
   imports: [
@@ -29,10 +32,11 @@ import { User, UserSchema } from '../auth/user.schema';
       { name: AvailabilityRange.name, schema: AvailabilityRangeSchema },
       { name: UnavailableDate.name, schema: UnavailableDateSchema },
       { name: User.name, schema: UserSchema },
+      { name: Booking.name, schema: BookingSchema },
     ]),
   ],
   controllers: [AvailabilityController],
-  providers: [AvailabilityService],
+  providers: [AvailabilityService, ZoomService, EmailService],
   exports: [AvailabilityService],
 })
 export class AvailabilityModule {}
