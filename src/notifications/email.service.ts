@@ -8,6 +8,7 @@ interface BookingEmailPayload {
   creatorName?: string | null;
   buyerName?: string | null;
   joinUrl: string;
+  startUrl?: string | null;
   startTimeIso: string;
   endTimeIso: string;
   timezone: string;
@@ -38,13 +39,14 @@ export class EmailService {
       return;
     }
 
-    const { joinUrl, startTimeIso, endTimeIso, timezone } = payload;
+    const { joinUrl, startUrl, startTimeIso, endTimeIso, timezone } = payload;
     const startFormatted = moment(startTimeIso)
       .tz(timezone)
       .format('dddd, MMMM D YYYY • h:mm A');
     const endFormatted = moment(endTimeIso)
       .tz(timezone)
       .format('h:mm A z');
+    const hostUrl = startUrl || joinUrl;
 
     const buyerMail: MailDataRequired = {
       to: payload.buyerEmail,
@@ -81,7 +83,8 @@ export class EmailService {
         <p>Hi ${payload.creatorName || 'creator'},</p>
         <p>${payload.buyerName || 'A client'} booked a session with you.</p>
         <p><strong>When:</strong> ${startFormatted} – ${endFormatted}</p>
-        <p><strong>Zoom meeting:</strong> <a href="${joinUrl}">${joinUrl}</a></p>
+        <p><strong>Start your Zoom meeting:</strong> <a href="${hostUrl}">${hostUrl}</a></p>
+        <p><strong>Guest link:</strong> <a href="${joinUrl}">${joinUrl}</a></p>
         <p>See you there!</p>
         <p>— SlotChain</p>
       `,
@@ -89,7 +92,8 @@ export class EmailService {
         `Hi ${payload.creatorName || 'creator'},`,
         `${payload.buyerName || 'A client'} booked a session with you.`,
         `When: ${startFormatted} – ${endFormatted}`,
-        `Zoom meeting: ${joinUrl}`,
+        `Start your Zoom meeting: ${hostUrl}`,
+        `Guest link: ${joinUrl}`,
         'See you there!',
         '— SlotChain',
       ].join('\n'),

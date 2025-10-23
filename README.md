@@ -2,7 +2,7 @@
 
 curl -i http://localhost:5000/auth/user/0x255eC453F14Ed7ba3d7BEbF9F253E17778b6ADF3
 
-forge script --chain sepolia script/SlotChain.s.sol:DeploySlotChain --rpc-url $SEPOLIA_RPC_URL --broadcast --verify -vvvvv
+forge script --chain sepolia script/SlotChain.s.sol:DeploySlotChain --rpc-url $BASE_RPC_URL --broadcast --verify -vvvvv
 forge script --chain sepolia script/SlotChainImp.s.sol:DeploySlotChainIMP --rpc-url $SEPOLIA_RPC_URL --broadcast --verify -vvvvv
 
 ## Environment Variables
@@ -17,3 +17,5 @@ ZOOM_CLIENT_ID
 ZOOM_CLIENT_SECRET
 
 All bookings are stored in the new `bookings` collection with the creator wallet, creator email, buyer email, and the generated Zoom meeting links. A booking is created once the on-chain transaction confirms, the slot is marked as booked, and the Zoom meeting + SendGrid notifications succeed.
+
+https://sepolia.basescan.org/address/0x5bdde6bb0f5f7d7bf51ddcf4bbd2d6f3a25e3bcf

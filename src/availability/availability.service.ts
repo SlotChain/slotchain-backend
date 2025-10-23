@@ -247,6 +247,7 @@ export class AvailabilityService {
         creatorName: displayCreatorName,
         buyerName,
         joinUrl: zoomMeeting.join_url,
+        startUrl: zoomMeeting.start_url,
         startTimeIso: slotStart.toISOString(),
         endTimeIso: slotEnd.toISOString(),
         timezone,

@@ -173,7 +173,6 @@ export class AuthService {
           },
         );
         imageCID = pinataFileRes.data.IpfsHash;
-        console.log(`🖼️ New image uploaded to IPFS: ${imageCID}`);
       } catch (err) {
         console.error(
           'Failed to upload new profile photo:',
@@ -223,7 +222,6 @@ export class AuthService {
       );
 
       metadataCID = pinataJsonRes.data.IpfsHash;
-      console.log(`📦 Updated metadata uploaded: ${metadataCID}`);
     } catch (err) {
       console.error(
         'Failed to upload updated metadata:',
@@ -361,7 +359,6 @@ export class AuthService {
     );
 
         imageCID = pinataFileRes.data.IpfsHash;
-        console.log(`✅ Image uploaded: ${imageCID}`);
       } catch (err) {
         console.error(
           '❌ Failed to upload image to Pinata',
@@ -410,7 +407,6 @@ export class AuthService {
       );
 
       metadataCID = pinataJsonRes.data.IpfsHash;
-      console.log(` Metadata uploaded: ${metadataCID}`);
     } catch (err) {
       console.error(
         ' Failed to upload metadata',
@@ -438,7 +434,7 @@ export class AuthService {
       Number(data.hourlyRate) * 1_000_000
     ).toString();
 
-    console.log(`💾 User saved to MongoDB: ${newUser._id}`);
+  
 
     return {
       status: 'created',
