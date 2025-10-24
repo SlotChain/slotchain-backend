@@ -10,12 +10,12 @@ export class AppController {
     return { ok: true, message: 'SlotChain backend running ✅' };
   }
 
-  @Get('/api/health')
+  @Get('/health')
   getHealth() {
     return { ok: true, message: 'SlotChain API health OK 🚀' };
   }
 
-  @Get('/api/hello')
+  @Get('/hello')
   getHello(): string {
     return this.appService.getHello();
   }
