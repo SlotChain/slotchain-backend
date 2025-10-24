@@ -44,9 +44,13 @@ async function bootstrapServer() {
 
   // Return a serverless wrapper
   console.log('✅ NestJS server bootstrapped successfully');
-  return serverless(expressApp, {
-    requestId: 'x-vercel-request-id',
-  });
+  return serverless(
+    expressApp,
+    {
+      requestId: 'x-vercel-request-id',
+      callbackWaitsForEmptyEventLoop: false,
+    } as any,
+  );
 }
 
 // Lambda/Vercel entry point
