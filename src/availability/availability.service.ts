@@ -104,17 +104,33 @@ export class AvailabilityService {
       .format('dddd')
       .toLowerCase();
 
-    const dayAvailability = dayRecord?.[weekday];
-    if (!dayAvailability || dayAvailability.length === 0) return [];
+    const dayAvailability = dayRecord?.slots ?? [];
+    if (dayAvailability.length === 0) return [];
 
     const interval = availability.interval;
     const slots: { start: string; end: string }[] = [];
 
     for (const { start, end } of dayAvailability) {
-      let cursor = moment(start, 'HH:mm');
-      const endTime = moment(end, 'HH:mm');
+      if (!start || !end) {
+        continue;
+      }
+      const startMoment = moment.tz(
+        `${targetDate} ${start}`,
+        'YYYY-MM-DD HH:mm',
+        availability.timezone || 'UTC',
+      );
+      const endMoment = moment.tz(
+        `${targetDate} ${end}`,
+        'YYYY-MM-DD HH:mm',
+        availability.timezone || 'UTC',
+      );
+      if (!startMoment.isValid() || !endMoment.isValid()) {
+        continue;
+      }
 
-      while (cursor.clone().add(interval, 'minutes').isSameOrBefore(endTime)) {
+      let cursor = startMoment.clone();
+
+      while (cursor.clone().add(interval, 'minutes').isSameOrBefore(endMoment)) {
         const slotStart = cursor.format('HH:mm');
         const slotEnd = cursor.add(interval, 'minutes').format('HH:mm');
         slots.push({ start: slotStart, end: slotEnd });
