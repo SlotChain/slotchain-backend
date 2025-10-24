@@ -1,5 +1,36 @@
 {
   "version": 2,
-  "builds": [{ "src": "dist/api/index.js", "use": "@vercel/node" }],
-  "routes": [{ "src": "/(.*)", "dest": "dist/api/index.js" }]
+  "builds": [
+    {
+      "src": "dist/api/index.js",
+      "use": "@vercel/node",
+      "config": {
+        "maxLambdaSize": "50mb",
+        "includeFiles": ["dist/**"]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "dist/api/index.js"
+    },
+    {
+      "src": "/favicon.ico",
+      "status": 404
+    },
+    {
+      "src": "/(.*)",
+      "status": 404
+    }
+  ],
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 60,
+      "memory": 1024
+    }
+  },
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
