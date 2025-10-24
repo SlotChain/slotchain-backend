@@ -9,14 +9,12 @@ import { MeetingsModule } from './meetings/meetings.module';
 
 @Module({
   imports: [
-    AuthModule,
     ConfigModule.forRoot({
-      isGlobal: true, // ✅ this makes env vars accessible everywhere
-    }),
-    ConfigModule.forRoot({
+      isGlobal: true,
       envFilePath: '.env',
     }),
     MongooseModule.forRoot(process.env.MONGO_URI!),
+    AuthModule,
     AvailabilityModule,
     MeetingsModule,
   ],
