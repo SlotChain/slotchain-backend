@@ -24,6 +24,23 @@
       "status": 404
     }
   ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "https://slotchain-app.vercel.app" },
+        { "key": "Access-Control-Allow-Credentials", "value": "true" },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET,OPTIONS,POST,PUT,PATCH,DELETE"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Origin,Content-Type,Accept,Authorization"
+        }
+      ]
+    }
+  ],
   "functions": {
     "api/index.js": {
       "maxDuration": 60,
