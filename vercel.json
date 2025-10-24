@@ -24,9 +24,7 @@
   ],
   "functions": {
     "api/index.js": {
-      "maxDuration": 60,
-      "memory": 1024,
-      "includeFiles": ["dist/**"]
+      "includeFiles": "dist/**"
     }
   }
 }
