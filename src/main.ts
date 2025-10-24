@@ -12,7 +12,7 @@ async function bootstrap() {
   });
 
   app.enableCors({
-    origin: process.env.FRONTEND_URL,
+    origin: process.env.FRONTEND_URL || '*',
     credentials: true,
   });
 
@@ -21,10 +21,7 @@ async function bootstrap() {
   return serverless(expressApp);
 }
 
-// 👇 Vercel expects this default export
 export default async function handler(req, res) {
-  if (!server) {
-    server = await bootstrap();
-  }
+  server = server ?? (await bootstrap());
   return server(req, res);
 }

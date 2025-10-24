@@ -13,7 +13,15 @@ import { MeetingsModule } from './meetings/meetings.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    MongooseModule.forRoot(process.env.MONGO_URI!),
+    MongooseModule.forRootAsync({
+      useFactory: async () => ({
+        uri: process.env.MONGO_URI,
+        serverSelectionTimeoutMS: 5000, // stop trying after 5s
+        connectTimeoutMS: 5000,
+        socketTimeoutMS: 45000,
+        bufferCommands: false,
+      }),
+    }),
     AuthModule,
     AvailabilityModule,
     MeetingsModule,
