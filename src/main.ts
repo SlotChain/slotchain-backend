@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { RequestMethod } from '@nestjs/common';
 import { AppModule } from './app.module';
 import serverless from 'serverless-http';
 
@@ -6,7 +7,9 @@ let server: any;
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api', {
+    exclude: [{ path: '/', method: RequestMethod.ALL }],
+  });
 
   app.enableCors({
     origin: process.env.FRONTEND_URL,
